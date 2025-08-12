@@ -25,7 +25,7 @@ This will create a `.env` file from `.env.example` with default values. You can 
 ### 1. Start the development environment (PostgreSQL)
 
 ```shell script
-./docker/start-dev.sh
+./start-dev.sh
 ```
 
 This will start a PostgreSQL container using the configuration from your `.env` file:
@@ -44,7 +44,13 @@ This will start a PostgreSQL container using the configuration from your `.env` 
 ### 3. Stop the development environment
 
 ```shell script
-./docker/stop-dev.sh
+./stop-dev.sh
+```
+
+### 4. Rebuild the development environment (if needed)
+
+```shell script
+./rebuild-dev.sh
 ```
 
 ## Environment Variables
