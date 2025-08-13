@@ -49,7 +49,7 @@ public class AuthService {
 
         user = userRepository.save(user);
 
-        String accessToken = jwtService.generateToken(user.getGoogleId(), user.getEmail(), user.getName());
+        String accessToken = jwtService.generateToken(user);
         UserDTO userDTO = UserDTO.from(user);
 
         return new AuthResponseDTO(accessToken, jwtExpirationSeconds, userDTO);

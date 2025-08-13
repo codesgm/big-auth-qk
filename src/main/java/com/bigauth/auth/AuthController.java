@@ -9,6 +9,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 
 import java.net.URI;
@@ -26,10 +27,14 @@ public class AuthController {
     @Inject
     UserInfo userInfo;
 
+    @ConfigProperty(name = "frontend.url")
+    String frontendUrl;
+
     @GET
     @Path("/google")
+    @Authenticated
     public Response loginWithGoogle() {
-        return Response.temporaryRedirect(URI.create("/auth/callback")).build();
+        return Response.ok("Redirecting to Google...").build();
     }
 
     @GET
@@ -37,7 +42,20 @@ public class AuthController {
     @Authenticated
     @Produces(MediaType.APPLICATION_JSON)
     public Response googleCallback() {
-        AuthResponseDTO authResponse = authService.processGoogleAuth(idToken, userInfo);
-        return Response.ok(authResponse).build();
+        try {
+            AuthResponseDTO authResponse = authService.processGoogleAuth(idToken, userInfo);
+            
+            String redirectUrl = String.format(
+                "%s/auth/success?access_token=%s&expires_in=%d",
+                frontendUrl,
+                authResponse.getAccessToken(),
+                authResponse.getExpiresIn()
+            );
+            
+            return Response.temporaryRedirect(URI.create(redirectUrl)).build();
+        } catch (Exception e) {
+            String errorUrl = frontendUrl + "/login?error=auth_failed";
+            return Response.temporaryRedirect(URI.create(errorUrl)).build();
+        }
     }
 }

@@ -12,7 +12,6 @@ public class GlobalExceptionHandler implements ExceptionMapper<Exception> {
 
     @Override
     public Response toResponse(Exception exception) {
-        LOG.error("Erro não tratado: " + exception.getMessage(), exception);
         
         ApiErrorDTO error = new ApiErrorDTO(
             Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(),
