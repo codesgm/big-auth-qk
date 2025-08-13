@@ -4,9 +4,7 @@ import io.quarkus.oidc.IdToken;
 import io.quarkus.oidc.UserInfo;
 import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -21,13 +19,32 @@ public class AuthController {
     AuthService authService;
 
     @Inject
+    CookieService cookieService;
+
+    @Inject
     @IdToken
     JsonWebToken idToken;
 
     @Inject
     UserInfo userInfo;
 
-    @ConfigProperty(name = "frontend.url")
+    @ConfigProperty(name = "frontend.url"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    )
     String frontendUrl;
 
     @GET
@@ -43,7 +60,7 @@ public class AuthController {
     @Produces(MediaType.APPLICATION_JSON)
     public Response googleCallback() {
         try {
-            AuthResponseDTO authResponse = authService.processGoogleAuth(idToken, userInfo);
+            InternalAuthResponse authResponse = authService.processGoogleAuth(idToken, userInfo);
             
             String redirectUrl = String.format(
                 "%s/auth/success?access_token=%s&expires_in=%d",
@@ -52,10 +69,39 @@ public class AuthController {
                 authResponse.getExpiresIn()
             );
             
-            return Response.temporaryRedirect(URI.create(redirectUrl)).build();
+            return Response.temporaryRedirect(URI.create(redirectUrl))
+                .cookie(cookieService.createRefreshTokenCookie(authResponse.getRefreshToken()))
+                .build();
         } catch (Exception e) {
             String errorUrl = frontendUrl + "/login?error=auth_failed";
             return Response.temporaryRedirect(URI.create(errorUrl)).build();
         }
+    }
+
+    @POST
+    @Path("/refresh")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response refreshToken(@CookieParam("refresh_token") String refreshToken) {
+        if (refreshToken == null) {
+            return Response.status(401).entity("Refresh token missing").build();
+        }
+        
+        try {
+            InternalAuthResponse response = authService.refreshAccessToken(refreshToken);
+            
+            return Response.ok(response.toPublicResponse())
+                .cookie(cookieService.createRefreshTokenCookie(response.getRefreshToken()))
+                .build();
+        } catch (Exception e) {
+            return Response.status(401).entity("Invalid refresh token").build();
+        }
+    }
+
+    @POST
+    @Path("/logout")
+    public Response logout(@CookieParam("refresh_token") String refreshToken) {
+        return Response.ok("Logged out")
+            .cookie(cookieService.createExpiredRefreshTokenCookie())
+            .build();
     }
 }

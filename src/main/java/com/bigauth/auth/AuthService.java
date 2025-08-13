@@ -27,7 +27,7 @@ public class AuthService {
     Long jwtRefreshExpirationSeconds;
 
     @Transactional
-    public AuthResponseDTO processGoogleAuth(JsonWebToken idToken, UserInfo userInfo) {
+    public InternalAuthResponse processGoogleAuth(JsonWebToken idToken, UserInfo userInfo) {
         String googleId = idToken.getSubject();
         String email = userInfo.getEmail();
         String name = userInfo.getName();
@@ -50,8 +50,29 @@ public class AuthService {
         user = userRepository.save(user);
 
         String accessToken = jwtService.generateToken(user);
+        String refreshToken = jwtService.generateRefreshToken(user);
         UserDTO userDTO = UserDTO.from(user);
 
-        return new AuthResponseDTO(accessToken, jwtExpirationSeconds, userDTO);
+        return new InternalAuthResponse(accessToken, refreshToken, jwtExpirationSeconds, userDTO);
+    }
+
+    @Transactional
+    public InternalAuthResponse refreshAccessToken(String refreshToken) {
+        if (!jwtService.validateRefreshToken(refreshToken)) {
+            throw new SecurityException("Invalid refresh token");
+        }
+
+        String userId = jwtService.extractUserIdFromRefreshToken(refreshToken);
+        User user = userRepository.findById(Long.parseLong(userId));
+
+        if (user == null) {
+            throw new SecurityException("User not found");
+        }
+
+        String newAccessToken = jwtService.generateToken(user);
+        String newRefreshToken = jwtService.generateRefreshToken(user);
+        UserDTO userDTO = UserDTO.from(user);
+
+        return new InternalAuthResponse(newAccessToken, newRefreshToken, jwtExpirationSeconds, userDTO);
     }
 }
