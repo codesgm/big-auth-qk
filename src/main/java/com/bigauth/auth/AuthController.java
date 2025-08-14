@@ -26,17 +26,10 @@ public class AuthController {
     UserInfo userInfo;
 
     @GET
-    @Path("/google")
-    @Authenticated
-    public Response loginWithGoogle() {
-        return authProcessor.processGoogleAuthentication(idToken, userInfo);
-    }
-
-    @GET
-    @Path("/callback")
+    @Path("/login")
     @Authenticated
     @Produces(MediaType.APPLICATION_JSON)
-    public Response googleCallback() {
+    public Response login() {
         return authProcessor.processGoogleAuthentication(idToken, userInfo);
     }
 
